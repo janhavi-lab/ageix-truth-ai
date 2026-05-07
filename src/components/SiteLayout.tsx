@@ -58,7 +58,7 @@ export const SiteLayout = () => {
             ))}
             <Link
               to="/"
-              className="text-sm text-foreground/90 hover:text-white transition-colors hover:shadow-[0_0_12px_hsl(var(--neon-cyan)/0.35)]"
+              className="relative text-sm text-foreground/85 hover:text-white transition-all duration-300 hover:drop-shadow-[0_0_8px_hsl(var(--neon-cyan)/0.6)]"
             >
               Sign In
             </Link>

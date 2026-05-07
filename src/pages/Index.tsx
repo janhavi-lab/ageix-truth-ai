@@ -207,7 +207,7 @@ const Index = () => {
 
           <div className="mt-5 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
             <ShieldCheck className="size-3.5 text-neon-cyan" />
-            Your content is analyzed in-session and never stored.
+            AGEIX securely processes scans to improve detection quality and user insights.
           </div>
         </motion.div>
       </section>
