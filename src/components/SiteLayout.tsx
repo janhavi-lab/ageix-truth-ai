@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Menu, ShieldCheck, Home, Sparkles, X, LogIn } from "lucide-react";
+import { Menu, ShieldCheck, Home, Sparkles, X } from "lucide-react";
 import { Logo } from "./Logo";
 import { CyberGrid } from "./CyberGrid";
 import { cn } from "@/lib/utils";
