@@ -4,6 +4,7 @@
 
 export type AnalyzeResult = {
   status: "Fake" | "Real";
+  confidence: number; // 0-100
   reason: string[];
   suggestion: string[];
 };
