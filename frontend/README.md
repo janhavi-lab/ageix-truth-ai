@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# AGEIX
 
-TODO: Document your project here
+AI-powered scam detection and truth verification platform.
