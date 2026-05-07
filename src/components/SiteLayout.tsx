@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/#features", label: "Features" },
-  { to: "/about", label: "About" },
   { to: "/#pricing", label: "Pricing" },
+  { to: "/about", label: "About" },
   { to: "/#faq", label: "FAQ" },
 ];
 
@@ -58,6 +58,12 @@ export const SiteLayout = () => {
             ))}
             <Link
               to="/"
+              className="text-sm text-foreground/90 hover:text-white transition-colors hover:shadow-[0_0_12px_hsl(var(--neon-cyan)/0.35)]"
+            >
+              Sign In
+            </Link>
+            <Link
+              to="/"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-[hsl(var(--neon-purple))] to-[hsl(var(--neon-cyan))] shadow-[0_0_24px_hsl(var(--neon-purple)/0.45)] hover:scale-[1.03] active:scale-[0.98] transition-transform"
             >
               <Sparkles className="size-3.5" /> Try AGEIX
@@ -80,6 +86,9 @@ export const SiteLayout = () => {
                   {n.label}
                 </Link>
               ))}
+              <Link to="/" className="py-2 text-foreground/90 hover:text-white transition-colors">
+                Sign In
+              </Link>
             </div>
           </div>
         )}
