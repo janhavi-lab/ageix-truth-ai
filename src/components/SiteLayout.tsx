@@ -86,6 +86,9 @@ export const SiteLayout = () => {
                   {n.label}
                 </Link>
               ))}
+              <Link to="/" className="py-2 text-foreground/90 hover:text-white transition-colors">
+                Sign In
+              </Link>
             </div>
           </div>
         )}
