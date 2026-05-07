@@ -115,6 +115,7 @@ export async function analyzeInput(input: AnalyzeInput): Promise<AnalyzeResult> 
     if (sketchy) {
       return {
         status: "Fake",
+        confidence: 88,
         reason: [
           "The recording matches patterns commonly seen in scam calls",
           "References to OTP, banking or prizes are typical of impersonation fraud",
@@ -128,6 +129,7 @@ export async function analyzeInput(input: AnalyzeInput): Promise<AnalyzeResult> 
     }
     return {
       status: "Real",
+      confidence: 72,
       reason: [
         "No obvious scam-call patterns were detected in the recording metadata",
         "Audio length and format look like a normal call recording",
@@ -152,6 +154,7 @@ export async function analyzeInput(input: AnalyzeInput): Promise<AnalyzeResult> 
   if (urls.length === 0 && /https?:\/\//i.test(text) === false && text.length < 10) {
     return {
       status: "Real",
+      confidence: 60,
       reason: ["The input was too short to find any suspicious signals"],
       suggestion: ["Paste a longer message, link or article for a more reliable check"],
     };
@@ -162,6 +165,7 @@ export async function analyzeInput(input: AnalyzeInput): Promise<AnalyzeResult> 
   reasons.push(...t.reasons);
 
   const isFake = totalScore >= 3;
+  const confidence = Math.min(98, 55 + totalScore * 8);
 
   if (isFake) {
     const suggestion = [
@@ -172,6 +176,7 @@ export async function analyzeInput(input: AnalyzeInput): Promise<AnalyzeResult> 
     if (t.isNewsLike) suggestion.push("Cross-check the story with two reputable news outlets");
     return {
       status: "Fake",
+      confidence,
       reason: dedupe(reasons).slice(0, 5),
       suggestion: dedupe(suggestion).slice(0, 4),
     };
@@ -179,6 +184,7 @@ export async function analyzeInput(input: AnalyzeInput): Promise<AnalyzeResult> 
 
   return {
     status: "Real",
+    confidence: Math.max(65, 95 - totalScore * 8),
     reason: reasons.length
       ? dedupe(reasons).slice(0, 4)
       : [
@@ -191,3 +197,4 @@ export async function analyzeInput(input: AnalyzeInput): Promise<AnalyzeResult> 
     ],
   };
 }
+
