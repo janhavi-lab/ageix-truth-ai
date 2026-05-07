@@ -26,7 +26,7 @@ export const ConfidenceRing = ({
           strokeDasharray={c}
           initial={{ strokeDashoffset: c }}
           animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1, ease: "easeOut" }}
+          transition={{ duration: 1, ease: "easeOut" as const }}
           style={{ filter: `drop-shadow(0 0 6px ${color})` }}
         />
       </svg>

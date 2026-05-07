@@ -34,7 +34,7 @@ export const ResultCard = ({ result, onReset }: { result: AnalyzeResult; onReset
     <motion.div
       initial={{ opacity: 0, y: 16, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.45, ease: "easeOut" }}
+      transition={{ duration: 0.45, ease: "easeOut" as const }}
       className={cn(
         "glass-card p-6 sm:p-8 relative overflow-hidden",
         isFake ? "ring-1 ring-destructive/40" : "ring-1 ring-success/40"

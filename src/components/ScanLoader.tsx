@@ -22,12 +22,12 @@ export const ScanLoader = () => {
         <motion.div
           className="absolute inset-0 rounded-full border border-[hsl(var(--neon-cyan)/0.4)]"
           animate={{ scale: [1, 1.4], opacity: [0.7, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" as const }}
         />
         <motion.div
           className="absolute inset-2 rounded-full border border-[hsl(var(--neon-purple)/0.4)]"
           animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut", delay: 0.4 }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" as const, delay: 0.4 }}
         />
         <div className="absolute inset-4 rounded-full bg-gradient-to-br from-[hsl(var(--neon-purple))] to-[hsl(var(--neon-cyan))] flex items-center justify-center">
           <Radar className="size-7 text-white animate-spin" />
