@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Github, Menu, ShieldCheck, Home, Sparkles, X } from "lucide-react";
+import { Menu, ShieldCheck, Home, Sparkles, X } from "lucide-react";
 import { Logo } from "./Logo";
 import { CyberGrid } from "./CyberGrid";
 import { cn } from "@/lib/utils";
@@ -56,15 +56,6 @@ export const SiteLayout = () => {
                 {n.label}
               </Link>
             ))}
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5"
-              aria-label="GitHub"
-            >
-              <Github className="size-4" /> GitHub
-            </a>
             <Link
               to="/"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-[hsl(var(--neon-purple))] to-[hsl(var(--neon-cyan))] shadow-[0_0_24px_hsl(var(--neon-purple)/0.45)] hover:scale-[1.03] active:scale-[0.98] transition-transform"
@@ -89,9 +80,6 @@ export const SiteLayout = () => {
                   {n.label}
                 </Link>
               ))}
-              <a href="https://github.com" target="_blank" rel="noreferrer" className="py-2 inline-flex items-center gap-2 text-muted-foreground">
-                <Github className="size-4" /> GitHub
-              </a>
             </div>
           </div>
         )}
