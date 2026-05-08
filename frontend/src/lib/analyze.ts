@@ -1,6 +1,7 @@
 // Ageix unified analyzer.
-// Auto-detects input type (URL / spam text / news / audio) and returns a
-// human-friendly verdict. Heuristic fallback is used when no backend is wired.
+// Uses backend for text analysis when available; keeps local heuristics for audio.
+
+import { api } from "@/lib/api";
 
 export type AnalyzeResult = {
   status: "Fake" | "Real";
@@ -12,6 +13,31 @@ export type AnalyzeResult = {
 export type AnalyzeInput =
   | { kind: "text"; value: string }
   | { kind: "audio"; file: File };
+
+type BackendAnalyzeResponse = {
+  status: string;
+  reason: string;
+  suggestion: string;
+};
+
+function normalizeStatus(status: string): "Fake" | "Real" {
+  const s = (status || "").trim().toLowerCase();
+  if (s === "fake" || s === "scam" || s === "phishing" || s === "fraud") return "Fake";
+  if (s === "real" || s === "safe" || s === "legit" || s === "legitimate") return "Real";
+  // fallback: keep UI stable even if backend returns unexpected label
+  return "Fake";
+}
+
+async function analyzeTextWithBackend(content: string): Promise<AnalyzeResult> {
+  const { data } = await api.post<BackendAnalyzeResponse>("/api/analyze", { content });
+  const status = normalizeStatus(data?.status);
+  return {
+    status,
+    confidence: status === "Fake" ? 88 : 82,
+    reason: [data?.reason || "No reasoning provided by the analyzer."],
+    suggestion: [data?.suggestion || "No suggestions provided by the analyzer."],
+  };
+}
 
 const SUSPICIOUS_TLDS = [".xyz", ".top", ".click", ".tk", ".ml", ".ga", ".cf", ".gq", ".loan", ".work"];
 const URL_SHORTENERS = ["bit.ly", "tinyurl.com", "t.co", "goo.gl", "is.gd", "ow.ly", "buff.ly", "rebrand.ly"];
@@ -104,8 +130,18 @@ function dedupe(arr: string[]): string[] {
 }
 
 export async function analyzeInput(input: AnalyzeInput): Promise<AnalyzeResult> {
-  // Simulate network latency
-  await new Promise((r) => setTimeout(r, 900 + Math.random() * 700));
+  if (input.kind === "text") {
+    const content = input.value.trim();
+    if (!content) {
+      return {
+        status: "Real",
+        confidence: 60,
+        reason: ["The input was too short to analyze."],
+        suggestion: ["Paste a longer message, link or article for a more reliable check."],
+      };
+    }
+    return analyzeTextWithBackend(content);
+  }
 
   if (input.kind === "audio") {
     // Heuristic for audio: flag based on file name patterns; otherwise treat as suspicious by default

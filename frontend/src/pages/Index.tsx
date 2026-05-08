@@ -172,7 +172,7 @@ const Index = () => {
                   </a>
                   <button
                     onClick={handleSubmit}
-                    disabled={!text.trim() && !audio}
+                    disabled={mutation.isPending || (!text.trim() && !audio)}
                     className={cn(
                       "inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl font-medium text-sm",
                       "bg-gradient-to-r from-[hsl(var(--neon-purple))] to-[hsl(var(--neon-cyan))] text-white",
@@ -181,7 +181,15 @@ const Index = () => {
                       "shadow-[0_0_30px_hsl(var(--neon-purple)/0.45)]"
                     )}
                   >
-                    <Sparkles className="size-4" /> Check Now
+                    {mutation.isPending ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" /> Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="size-4" /> Check Now
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -199,6 +207,9 @@ const Index = () => {
           {mutation.isError && !mutation.isPending && (
             <div className="mt-6 glass-card p-6 text-center">
               <div className="text-destructive font-medium">Analysis failed</div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                Please make sure the backend is running on <span className="font-medium">localhost:5001</span>, then try again.
+              </div>
               <button onClick={() => mutation.mutate()} className="mt-3 text-sm underline">
                 Retry
               </button>
