@@ -1,7 +1,9 @@
 export {};
 
 const { detectInputType } = require("../utils/detectInputType") as {
-  detectInputType: (input: string) => import("../utils/detectInputType").InputType;
+  detectInputType: (
+    input: string,
+  ) => import("../utils/detectInputType").InputType;
 };
 
 const { predictSpam } = require("./spamDetectorService") as {
@@ -15,7 +17,7 @@ const { getSupabaseClient } = require("../config/supabase") as {
 };
 
 export type AnalyzeResult = {
-  status: "Fake";
+  status: "Fake" | "Real";
   reason: string[];
   suggestion: string[];
 };
@@ -33,7 +35,10 @@ function buildDummyResult(
       return {
         status: "Fake",
         reason: ["Potential phishing or malicious link patterns detected"],
-        suggestion: ["Do not click the link", "Verify the domain before visiting"],
+        suggestion: [
+          "Do not click the link",
+          "Verify the domain before visiting",
+        ],
       };
 
     case "news":
@@ -81,11 +86,13 @@ function buildSpamDetectorResult(
   }
 
   return {
-    status: "Fake",
-    reason: [`Prediction returned "${prediction}" (${confidencePct} confidence)`],
+    status: "Real",
+    reason: [
+      `Prediction returned "${prediction}" (${confidencePct} confidence)`,
+    ],
     suggestion: [
-      "Proceed carefully",
-      "Avoid sharing sensitive information",
+      "Message appears safe",
+      "No suspicious activity detected",
     ],
   };
 }
@@ -139,44 +146,39 @@ async function saveScanToSupabase(args: {
 }
 
 async function analyzeContent(
-    content: string,
-  ): Promise<AnalyzeServiceOutput> {
-  
-    const inputType = detectInputType(content);
-  
-    if (inputType === "message") {
-  
-      try {
-  
-        const { prediction, confidence } = await predictSpam(content);
-  
-        await saveScanToSupabase({
-          content,
-          result: prediction,
-          confidence,
-          modelUsed: "flask-spam-detector",
-        });
-  
-        return {
-          inputType,
-          result: buildSpamDetectorResult(prediction, confidence),
-        };
-  
-      } catch (err) {
-  
-        console.error("[AGEIX] Spam detector failed:", err);
-  
-        return {
-          inputType,
-          result: buildSafeFallbackResult(),
-        };
-      }
+  content: string,
+): Promise<AnalyzeServiceOutput> {
+  const inputType = detectInputType(content);
+
+  if (inputType === "message") {
+    try {
+      const { prediction, confidence } = await predictSpam(content);
+
+      await saveScanToSupabase({
+        content,
+        result: prediction,
+        confidence,
+        modelUsed: "flask-spam-detector",
+      });
+
+      return {
+        inputType,
+        result: buildSpamDetectorResult(prediction, confidence),
+      };
+    } catch (err) {
+      console.error("[AGEIX] Spam detector failed:", err);
+
+      return {
+        inputType,
+        result: buildSafeFallbackResult(),
+      };
     }
-  
-    return {
-      inputType,
-      result: buildDummyResult(inputType),
-    };
   }
 
-  module.exports = { analyzeContent };
+  return {
+    inputType,
+    result: buildDummyResult(inputType),
+  };
+}
+
+module.exports = { analyzeContent };
