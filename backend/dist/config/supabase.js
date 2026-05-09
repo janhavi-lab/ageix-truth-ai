@@ -1,30 +1,36 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const { createClient } = require("@supabase/supabase-js");
+let cachedClient = null;
 function normalizeSupabaseUrl(raw) {
     const trimmed = raw.trim().replace(/\/+$/, "");
-    // Allow users to paste REST URL (…/rest/v1). Supabase client expects project base URL.
+    // Remove accidental /rest/v1 if pasted
     return trimmed.replace(/\/rest\/v1$/i, "");
 }
-function readSupabaseConfig() {
-    const urlRaw = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!urlRaw)
-        throw new Error("Missing required env var: SUPABASE_URL");
-    if (!key)
-        throw new Error("Missing required env var: SUPABASE_SERVICE_ROLE_KEY");
-    return {
-        url: normalizeSupabaseUrl(urlRaw),
-        serviceRoleKey: key,
-    };
-}
-let cachedClient = null;
 function getSupabaseClient() {
-    if (cachedClient)
+    if (cachedClient) {
         return cachedClient;
-    const { url, serviceRoleKey } = readSupabaseConfig();
-    cachedClient = createClient(url, serviceRoleKey, {
-        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    }
+    const supabaseUrlRaw = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrlRaw) {
+        throw new Error("SUPABASE_URL missing in .env");
+    }
+    if (!supabaseKey) {
+        throw new Error("SUPABASE_SERVICE_ROLE_KEY missing in .env");
+    }
+    const supabaseUrl = normalizeSupabaseUrl(supabaseUrlRaw);
+    cachedClient = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+        },
+        realtime: {
+            params: {
+                eventsPerSecond: 1,
+            },
+        },
     });
     return cachedClient;
 }

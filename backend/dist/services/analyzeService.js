@@ -14,48 +14,61 @@ function buildDummyResult(inputType) {
         case "news":
             return {
                 status: "Fake",
-                reason: ["Possible misinformation indicators detected in long-form content"],
-                suggestion: ["Cross-check with trusted sources", "Look for primary references"],
+                reason: ["Possible misinformation indicators detected"],
+                suggestion: ["Cross-check with trusted sources"],
             };
         case "message":
         default:
             return {
                 status: "Fake",
-                reason: ["Basic message heuristics flagged potential spam/scam content"],
-                suggestion: ["Avoid sharing personal info", "Verify the sender independently"],
+                reason: ["Potential spam/scam indicators detected"],
+                suggestion: ["Avoid sharing personal info"],
             };
     }
 }
 function buildSpamDetectorResult(prediction, confidence) {
     const p = prediction.toLowerCase();
-    const isBad = /spam|scam|phish|malicious|fraud/.test(p);
-    const confidencePct = `${Math.round(Math.max(0, Math.min(1, confidence)) * 100)}%`;
+    const isBad = p.includes("spam") ||
+        p.includes("fake") ||
+        p.includes("scam") ||
+        p.includes("fraud");
+    const confidencePct = `${Math.round(confidence * 100)}%`;
     if (isBad) {
         return {
             status: "Fake",
             reason: [
-                `Spam detector flagged this message as "${prediction}" (confidence ${confidencePct})`,
+                `Spam detector flagged this message as "${prediction}" (${confidencePct} confidence)`,
             ],
-            suggestion: ["Do not respond or click links", "Block/report the sender if applicable"],
+            suggestion: [
+                "Do not respond",
+                "Avoid clicking suspicious links",
+            ],
         };
     }
     return {
         status: "Fake",
-        reason: [`Spam detector returned "${prediction}" (confidence ${confidencePct})`],
-        suggestion: ["Proceed cautiously", "Avoid sharing sensitive information"],
+        reason: [`Prediction returned "${prediction}" (${confidencePct} confidence)`],
+        suggestion: [
+            "Proceed carefully",
+            "Avoid sharing sensitive information",
+        ],
     };
 }
 function buildSafeFallbackResult() {
     return {
         status: "Fake",
-        reason: ["Spam detector service unavailable; returning safe fallback response"],
-        suggestion: ["Treat this message as suspicious", "Avoid clicking links or sharing credentials"],
+        reason: ["AI service unavailable"],
+        suggestion: ["Treat this message cautiously"],
     };
 }
 async function saveScanToSupabase(args) {
     try {
+        console.log("[AGEIX] Initializing Supabase client...");
         const supabase = getSupabaseClient();
-        const { error } = await supabase.from("scans").insert([
+        console.log("[AGEIX] Attempting Supabase insert...");
+        const { data, error } = await supabase
+            .from("scans")
+            .insert([
             {
                 content: args.content,
                 result: args.result,
@@ -63,15 +76,18 @@ async function saveScanToSupabase(args) {
                 model_used: args.modelUsed,
                 created_at: new Date().toISOString(),
             },
-        ]);
+        ])
+            .select();
+        console.log("[AGEIX] Insert error:", error);
+        console.log("[AGEIX] Insert data:", data);
         if (error) {
-            // eslint-disable-next-line no-console
             console.warn("[AGEIX] Supabase insert failed:", error.message);
+            return;
         }
+        console.log("[AGEIX] Scan saved successfully.");
     }
     catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn("[AGEIX] Supabase unavailable; skipping scan persist:", err);
+        console.error("[AGEIX] Supabase unavailable:", err);
     }
 }
 async function analyzeContent(content) {
@@ -91,8 +107,7 @@ async function analyzeContent(content) {
             };
         }
         catch (err) {
-            // eslint-disable-next-line no-console
-            console.error("[AGEIX] Spam detector call failed:", err);
+            console.error("[AGEIX] Spam detector failed:", err);
             return {
                 inputType,
                 result: buildSafeFallbackResult(),
