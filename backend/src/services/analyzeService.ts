@@ -3,8 +3,15 @@ export {};
 const { detectInputType } = require("../utils/detectInputType") as {
   detectInputType: (input: string) => import("../utils/detectInputType").InputType;
 };
+
 const { predictSpam } = require("./spamDetectorService") as {
-  predictSpam: (content: string) => Promise<import("./spamDetectorService").SpamDetectorOutput>;
+  predictSpam: (
+    content: string,
+  ) => Promise<import("./spamDetectorService").SpamDetectorOutput>;
+};
+
+const { getSupabaseClient } = require("../config/supabase") as {
+  getSupabaseClient: () => import("@supabase/supabase-js").SupabaseClient;
 };
 
 export type AnalyzeResult = {
@@ -28,18 +35,20 @@ function buildDummyResult(
         reason: ["Potential phishing or malicious link patterns detected"],
         suggestion: ["Do not click the link", "Verify the domain before visiting"],
       };
+
     case "news":
       return {
         status: "Fake",
-        reason: ["Possible misinformation indicators detected in long-form content"],
-        suggestion: ["Cross-check with trusted sources", "Look for primary references"],
+        reason: ["Possible misinformation indicators detected"],
+        suggestion: ["Cross-check with trusted sources"],
       };
+
     case "message":
     default:
       return {
         status: "Fake",
-        reason: ["Basic message heuristics flagged potential spam/scam content"],
-        suggestion: ["Avoid sharing personal info", "Verify the sender independently"],
+        reason: ["Potential spam/scam indicators detected"],
+        suggestion: ["Avoid sharing personal info"],
       };
   }
 }
@@ -49,60 +58,125 @@ function buildSpamDetectorResult(
   confidence: number,
 ): AnalyzeResult {
   const p = prediction.toLowerCase();
-  const isBad = /spam|scam|phish|malicious|fraud/.test(p);
 
-  const confidencePct = `${Math.round(Math.max(0, Math.min(1, confidence)) * 100)}%`;
+  const isBad =
+    p.includes("spam") ||
+    p.includes("fake") ||
+    p.includes("scam") ||
+    p.includes("fraud");
+
+  const confidencePct = `${Math.round(confidence * 100)}%`;
 
   if (isBad) {
     return {
       status: "Fake",
       reason: [
-        `Spam detector flagged this message as "${prediction}" (confidence ${confidencePct})`,
+        `Spam detector flagged this message as "${prediction}" (${confidencePct} confidence)`,
       ],
-      suggestion: ["Do not respond or click links", "Block/report the sender if applicable"],
+      suggestion: [
+        "Do not respond",
+        "Avoid clicking suspicious links",
+      ],
     };
   }
 
   return {
     status: "Fake",
-    reason: [`Spam detector returned "${prediction}" (confidence ${confidencePct})`],
-    suggestion: ["Proceed cautiously", "Avoid sharing sensitive information"],
+    reason: [`Prediction returned "${prediction}" (${confidencePct} confidence)`],
+    suggestion: [
+      "Proceed carefully",
+      "Avoid sharing sensitive information",
+    ],
   };
 }
 
 function buildSafeFallbackResult(): AnalyzeResult {
   return {
     status: "Fake",
-    reason: ["Spam detector service unavailable; returning safe fallback response"],
-    suggestion: ["Treat this message as suspicious", "Avoid clicking links or sharing credentials"],
+    reason: ["AI service unavailable"],
+    suggestion: ["Treat this message cautiously"],
   };
 }
 
-async function analyzeContent(content: string): Promise<AnalyzeServiceOutput> {
-  const inputType = detectInputType(content);
+async function saveScanToSupabase(args: {
+  content: string;
+  result: string;
+  confidence: number;
+  modelUsed: string;
+}): Promise<void> {
+  try {
+    console.log("[AGEIX] Initializing Supabase client...");
 
-  if (inputType === "message") {
-    try {
-      const { prediction, confidence } = await predictSpam(content);
-      return {
-        inputType,
-        result: buildSpamDetectorResult(prediction, confidence),
-      };
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("[AGEIX] Spam detector call failed:", err);
-      return {
-        inputType,
-        result: buildSafeFallbackResult(),
-      };
+    const supabase = getSupabaseClient();
+
+    console.log("[AGEIX] Attempting Supabase insert...");
+
+    const { data, error } = await supabase
+      .from("scans")
+      .insert([
+        {
+          content: args.content,
+          result: args.result,
+          confidence: args.confidence,
+          model_used: args.modelUsed,
+          created_at: new Date().toISOString(),
+        },
+      ])
+      .select();
+
+    console.log("[AGEIX] Insert error:", error);
+    console.log("[AGEIX] Insert data:", data);
+
+    if (error) {
+      console.warn("[AGEIX] Supabase insert failed:", error.message);
+      return;
     }
+
+    console.log("[AGEIX] Scan saved successfully.");
+  } catch (err) {
+    console.error("[AGEIX] Supabase unavailable:", err);
+  }
+}
+
+async function analyzeContent(
+    content: string,
+  ): Promise<AnalyzeServiceOutput> {
+  
+    const inputType = detectInputType(content);
+  
+    if (inputType === "message") {
+  
+      try {
+  
+        const { prediction, confidence } = await predictSpam(content);
+  
+        await saveScanToSupabase({
+          content,
+          result: prediction,
+          confidence,
+          modelUsed: "flask-spam-detector",
+        });
+  
+        return {
+          inputType,
+          result: buildSpamDetectorResult(prediction, confidence),
+        };
+  
+      } catch (err) {
+  
+        console.error("[AGEIX] Spam detector failed:", err);
+  
+        return {
+          inputType,
+          result: buildSafeFallbackResult(),
+        };
+      }
+    }
+  
+    return {
+      inputType,
+      result: buildDummyResult(inputType),
+    };
   }
 
-  return {
-    inputType,
-    result: buildDummyResult(inputType),
-  };
-}
-
-module.exports = { analyzeContent };
-
+  module.exports = { analyzeContent };

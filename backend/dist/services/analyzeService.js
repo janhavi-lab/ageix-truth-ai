@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const { detectInputType } = require("../utils/detectInputType");
 const { predictSpam } = require("./spamDetectorService");
+const { getSupabaseClient } = require("../config/supabase");
 function buildDummyResult(inputType) {
     switch (inputType) {
         case "url":
@@ -51,11 +52,39 @@ function buildSafeFallbackResult() {
         suggestion: ["Treat this message as suspicious", "Avoid clicking links or sharing credentials"],
     };
 }
+async function saveScanToSupabase(args) {
+    try {
+        const supabase = getSupabaseClient();
+        const { error } = await supabase.from("scans").insert([
+            {
+                content: args.content,
+                result: args.result,
+                confidence: args.confidence,
+                model_used: args.modelUsed,
+                created_at: new Date().toISOString(),
+            },
+        ]);
+        if (error) {
+            // eslint-disable-next-line no-console
+            console.warn("[AGEIX] Supabase insert failed:", error.message);
+        }
+    }
+    catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[AGEIX] Supabase unavailable; skipping scan persist:", err);
+    }
+}
 async function analyzeContent(content) {
     const inputType = detectInputType(content);
     if (inputType === "message") {
         try {
             const { prediction, confidence } = await predictSpam(content);
+            await saveScanToSupabase({
+                content,
+                result: prediction,
+                confidence,
+                modelUsed: "flask-spam-detector",
+            });
             return {
                 inputType,
                 result: buildSpamDetectorResult(prediction, confidence),

@@ -11,7 +11,7 @@ function normalizeBaseUrl(url) {
     return url.replace(/\/+$/, "");
 }
 function getAiServicesConfig() {
-    const spamDetectorBaseUrl = normalizeBaseUrl(process.env.AGEIX_SPAM_DETECTOR_URL ?? "http://localhost:5002");
+    const spamDetectorBaseUrl = normalizeBaseUrl(process.env.AGEIX_SPAM_DETECTOR_URL ?? "http://127.0.0.1:5003");
     const timeoutMs = readNumberEnv("AGEIX_AI_TIMEOUT_MS", 5000);
     return { spamDetectorBaseUrl, timeoutMs };
 }
