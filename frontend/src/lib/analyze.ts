@@ -29,13 +29,74 @@ function normalizeStatus(status: string): "Fake" | "Real" {
 }
 
 async function analyzeTextWithBackend(content: string): Promise<AnalyzeResult> {
-  const { data } = await api.post<BackendAnalyzeResponse>("/api/analyze", { content });
-  const status = normalizeStatus(data?.status);
+  try {
+    const { data } = await api.post<BackendAnalyzeResponse>("/api/analyze", { content });
+    const status = normalizeStatus(data?.status);
+    return {
+      status,
+      confidence: status === "Fake" ? 88 : 82,
+      reason: [data?.reason || "No reasoning provided by the analyzer."],
+      suggestion: [data?.suggestion || "No suggestions provided by the analyzer."],
+    };
+  } catch {
+    return localAnalyzeText(content);
+  }
+}
+
+function localAnalyzeText(text: string): AnalyzeResult {
+  const urls = extractUrls(text);
+  let totalScore = 0;
+  const reasons: string[] = [];
+
+  for (const url of urls) {
+    const r = scoreUrl(url);
+    totalScore += r.score;
+    reasons.push(...r.reasons);
+  }
+  if (urls.length === 0 && /https?:\/\//i.test(text) === false && text.length < 10) {
+    return {
+      status: "Real",
+      confidence: 60,
+      reason: ["The input was too short to find any suspicious signals"],
+      suggestion: ["Paste a longer message, link or article for a more reliable check"],
+    };
+  }
+
+  const t = scoreText(text);
+  totalScore += t.score;
+  reasons.push(...t.reasons);
+
+  const isFake = totalScore >= 3;
+  const confidence = Math.min(98, 55 + totalScore * 8);
+
+  if (isFake) {
+    const suggestion = [
+      "Do not click any links or reply to the sender",
+      "Verify the information using an official source you trust",
+    ];
+    if (urls.length) suggestion.push("Avoid opening the link, even out of curiosity");
+    if (t.isNewsLike) suggestion.push("Cross-check the story with two reputable news outlets");
+    return {
+      status: "Fake",
+      confidence,
+      reason: dedupe(reasons).slice(0, 5),
+      suggestion: dedupe(suggestion).slice(0, 4),
+    };
+  }
+
   return {
-    status,
-    confidence: status === "Fake" ? 88 : 82,
-    reason: [data?.reason || "No reasoning provided by the analyzer."],
-    suggestion: [data?.suggestion || "No suggestions provided by the analyzer."],
+    status: "Real",
+    confidence: Math.max(65, 95 - totalScore * 8),
+    reason: reasons.length
+      ? dedupe(reasons).slice(0, 4)
+      : [
+          "No strong scam, spam or misinformation signals were detected",
+          urls.length ? "Links look structurally normal" : "Language and tone appear neutral",
+        ],
+    suggestion: [
+      "Stay cautious — even genuine-looking content can be misused",
+      "When in doubt, confirm with the original source before acting",
+    ],
   };
 }
 
@@ -176,61 +237,5 @@ export async function analyzeInput(input: AnalyzeInput): Promise<AnalyzeResult> 
       ],
     };
   }
-
-  const text = input.value.trim();
-  const urls = extractUrls(text);
-  let totalScore = 0;
-  const reasons: string[] = [];
-
-  for (const url of urls) {
-    const r = scoreUrl(url);
-    totalScore += r.score;
-    reasons.push(...r.reasons);
-  }
-  if (urls.length === 0 && /https?:\/\//i.test(text) === false && text.length < 10) {
-    return {
-      status: "Real",
-      confidence: 60,
-      reason: ["The input was too short to find any suspicious signals"],
-      suggestion: ["Paste a longer message, link or article for a more reliable check"],
-    };
-  }
-
-  const t = scoreText(text);
-  totalScore += t.score;
-  reasons.push(...t.reasons);
-
-  const isFake = totalScore >= 3;
-  const confidence = Math.min(98, 55 + totalScore * 8);
-
-  if (isFake) {
-    const suggestion = [
-      "Do not click any links or reply to the sender",
-      "Verify the information using an official source you trust",
-    ];
-    if (urls.length) suggestion.push("Avoid opening the link, even out of curiosity");
-    if (t.isNewsLike) suggestion.push("Cross-check the story with two reputable news outlets");
-    return {
-      status: "Fake",
-      confidence,
-      reason: dedupe(reasons).slice(0, 5),
-      suggestion: dedupe(suggestion).slice(0, 4),
-    };
-  }
-
-  return {
-    status: "Real",
-    confidence: Math.max(65, 95 - totalScore * 8),
-    reason: reasons.length
-      ? dedupe(reasons).slice(0, 4)
-      : [
-          "No strong scam, spam or misinformation signals were detected",
-          urls.length ? "Links look structurally normal" : "Language and tone appear neutral",
-        ],
-    suggestion: [
-      "Stay cautious — even genuine-looking content can be misused",
-      "When in doubt, confirm with the original source before acting",
-    ],
-  };
 }
 
