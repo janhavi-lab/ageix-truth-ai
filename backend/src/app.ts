@@ -32,6 +32,16 @@ function createApp(): ExpressApp {
 
   app.use("/api/health", healthRouter);
   app.use("/api/analyze", analyzeRouter);
+  app.get("/", (_req, res) => {
+    res.status(200).json({
+      service: "AGEIX Backend API",
+      status: "running",
+      message: "Backend deployed successfully 🚀",
+      endpoints: {
+        analyze: "/api/analyze"
+      }
+    });
+  });
 
   app.use(notFoundHandler);
   app.use(errorHandler);
