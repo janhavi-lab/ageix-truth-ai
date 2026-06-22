@@ -4,8 +4,10 @@ import { Loader2, Upload, Sparkles, X, PlayCircle, ShieldCheck } from "lucide-re
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { analyzeInput, AnalyzeResult } from "@/lib/analyze";
+import { detectScanType, saveScanHistory } from "@/lib/scanHistory";
 import { ResultCard } from "@/components/ResultCard";
 import { ScanLoader } from "@/components/ScanLoader";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 const LandingSections = lazy(() =>
@@ -17,6 +19,7 @@ const MAX_AUDIO = 10 * 1024 * 1024;
 const ACCEPTED_AUDIO = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"];
 
 const Index = () => {
+  const { user } = useAuth();
   const [text, setText] = useState("");
   const [audio, setAudio] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -24,6 +27,27 @@ const Index = () => {
   const mutation = useMutation<AnalyzeResult, Error, void>({
     mutationFn: async () =>
       audio ? analyzeInput({ kind: "audio", file: audio }) : analyzeInput({ kind: "text", value: text }),
+    onSuccess: async (result) => {
+      if (!user) return;
+
+      const scanType = detectScanType(
+        audio ? { kind: "audio" } : { kind: "text", value: text }
+      );
+      const originalInput = audio ? audio.name : text.trim();
+
+      try {
+        await saveScanHistory({
+          userId: user.id,
+          email: user.email ?? "",
+          scanType,
+          originalInput,
+          aiVerdict: result.status,
+          confidence: result.confidence,
+        });
+      } catch {
+        toast.error("Scan completed, but saving to your history failed. Please try again.");
+      }
+    },
     onError: (e) => toast.error(e.message || "Something went wrong. Try again."),
   });
 

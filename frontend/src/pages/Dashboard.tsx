@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -6,12 +8,17 @@ import {
   Clock,
   Crown,
   FileSearch,
+  ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Zap,
+  BarChart3,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
+import { getUserScanHistory, type ScanHistoryRecord } from "@/lib/scanHistory";
 import { cn } from "@/lib/utils";
 
 const fade = {
@@ -20,17 +27,90 @@ const fade = {
   transition: { duration: 0.45, ease: "easeOut" as const },
 };
 
-const PLACEHOLDER_SCANS = [
-  { title: "Bank OTP message", verdict: "Fake", time: "2 hours ago" },
-  { title: "LinkedIn job offer", verdict: "Suspicious", time: "Yesterday" },
-  { title: "News headline check", verdict: "Real", time: "3 days ago" },
-];
-
 const RECENT_ACTIVITY = [
   { action: "Completed text scan", detail: "Phishing link detected", time: "2h ago" },
   { action: "Plan limit reminder", detail: "42 scans remaining today", time: "5h ago" },
   { action: "Account created", detail: "Welcome to AGEIX", time: "1 week ago" },
 ];
+
+const HISTORY_LIMIT = 5;
+const INPUT_PREVIEW_LENGTH = 100;
+
+function truncateInput(input: string, max = INPUT_PREVIEW_LENGTH): string {
+  const trimmed = input.trim();
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max)}…`;
+}
+
+function isFakeVerdict(verdict: string): boolean {
+  return verdict.trim().toLowerCase() === "fake";
+}
+
+function isRealVerdict(verdict: string): boolean {
+  return verdict.trim().toLowerCase() === "real";
+}
+
+function ScanHistoryItem({ scan }: { scan: ScanHistoryRecord }) {
+  const fake = isFakeVerdict(scan.ai_verdict);
+  const real = isRealVerdict(scan.ai_verdict);
+
+  return (
+    <div className="glass-card p-4 sm:p-5 hover:border-[hsl(var(--neon-cyan)/0.35)] transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                "text-xs font-medium inline-flex px-2.5 py-0.5 rounded-full",
+                fake
+                  ? "bg-destructive/20 text-destructive"
+                  : real
+                    ? "bg-success/20 text-success"
+                    : "bg-muted text-muted-foreground"
+              )}
+            >
+              {scan.ai_verdict}
+            </span>
+            <Badge
+              variant="outline"
+              className="text-[10px] uppercase tracking-wider border-border/60 bg-card/40"
+            >
+              {scan.scan_type}
+            </Badge>
+            <span className="text-xs text-neon-cyan font-medium">
+              {Math.round(scan.confidence)}% confidence
+            </span>
+          </div>
+          <p className="text-sm font-medium break-words line-clamp-2">
+            {truncateInput(scan.original_input)}
+          </p>
+        </div>
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1 shrink-0">
+          <Clock className="size-3" />
+          {formatDistanceToNow(new Date(scan.created_at), { addSuffix: true })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScanHistorySkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="glass-card p-4 sm:p-5 space-y-3">
+          <div className="flex gap-2">
+            <Skeleton className="h-5 w-14 rounded-full" />
+            <Skeleton className="h-5 w-12 rounded-full" />
+            <Skeleton className="h-5 w-24 rounded-full" />
+          </div>
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -45,6 +125,45 @@ const Dashboard = () => {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const {
+    data: allScans = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["scanHistory", user?.id],
+    queryFn: () => getUserScanHistory(),
+    enabled: !!user?.id,
+  });
+
+  const recentScans = allScans.slice(0, HISTORY_LIMIT);
+  const totalScans = allScans.length;
+  const fakeCount = allScans.filter((s) => isFakeVerdict(s.ai_verdict)).length;
+  const realCount = allScans.filter((s) => isRealVerdict(s.ai_verdict)).length;
+
+  const analytics = [
+    {
+      label: "Total scans",
+      value: totalScans,
+      icon: BarChart3,
+      accent: "text-neon-cyan",
+      glow: "bg-[hsl(var(--neon-cyan)/0.12)]",
+    },
+    {
+      label: "Fake detected",
+      value: fakeCount,
+      icon: ShieldAlert,
+      accent: "text-destructive",
+      glow: "bg-destructive/10",
+    },
+    {
+      label: "Real detected",
+      value: realCount,
+      icon: ShieldCheck,
+      accent: "text-success",
+      glow: "bg-success/10",
+    },
+  ];
 
   return (
     <div className="container py-10 sm:py-14 space-y-10">
@@ -75,52 +194,98 @@ const Dashboard = () => {
         </div>
       </motion.section>
 
+      <motion.section
+        {...fade}
+        transition={{ ...fade.transition, delay: 0.03 }}
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+      >
+        {isLoading
+          ? Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="glass-card p-5 sm:p-6">
+                <Skeleton className="h-4 w-24 mb-3" />
+                <Skeleton className="h-8 w-12" />
+              </div>
+            ))
+          : analytics.map((card) => (
+              <div key={card.label} className="glass-card p-5 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                    {card.label}
+                  </p>
+                  <div className={cn("size-9 rounded-lg flex items-center justify-center", card.glow)}>
+                    <card.icon className={cn("size-4", card.accent)} />
+                  </div>
+                </div>
+                <p className={cn("mt-2 text-3xl font-bold tabular-nums", card.accent)}>
+                  {card.value}
+                </p>
+              </div>
+            ))}
+      </motion.section>
+
       <div className="grid lg:grid-cols-3 gap-6">
         <motion.section
           {...fade}
           transition={{ ...fade.transition, delay: 0.05 }}
           className="lg:col-span-2 space-y-4"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <FileSearch className="size-5 text-neon-cyan" />
-              Scan history
+              Recent scan history
             </h2>
             <Link
               to="/"
-              className="text-xs text-neon-cyan hover:underline flex items-center gap-1"
+              className="text-xs text-neon-cyan hover:underline flex items-center gap-1 shrink-0"
             >
               New scan <ArrowUpRight className="size-3" />
             </Link>
           </div>
-          <div className="grid sm:grid-cols-3 gap-4">
-            {PLACEHOLDER_SCANS.map((scan) => (
-              <div
-                key={scan.title}
-                className="glass-card p-5 hover:border-[hsl(var(--neon-cyan)/0.35)] transition-colors group"
-              >
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-                  <Clock className="size-3" /> {scan.time}
-                </div>
-                <div className="mt-2 font-medium text-sm">{scan.title}</div>
-                <div
-                  className={cn(
-                    "mt-2 text-xs font-medium inline-flex px-2 py-0.5 rounded-full",
-                    scan.verdict === "Real"
-                      ? "bg-success/20 text-success"
-                      : scan.verdict === "Fake"
-                        ? "bg-destructive/20 text-destructive"
-                        : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {scan.verdict}
-                </div>
+
+          {isLoading && <ScanHistorySkeleton />}
+
+          {!isLoading && isError && (
+            <div className="glass-card p-8 text-center">
+              <p className="text-sm text-destructive font-medium">Could not load scan history</p>
+              <p className="mt-1 text-xs text-muted-foreground">Please refresh the page and try again.</p>
+            </div>
+          )}
+
+          {!isLoading && !isError && recentScans.length === 0 && (
+            <div className="glass-card p-8 sm:p-10 text-center">
+              <div className="mx-auto size-12 rounded-xl bg-[hsl(var(--neon-purple)/0.15)] flex items-center justify-center mb-4">
+                <FileSearch className="size-6 text-neon-cyan" />
               </div>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground text-center sm:text-left">
-            Scan history will sync here once connected to your backend API.
-          </p>
+              <p className="font-medium">No scans yet</p>
+              <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
+                Run your first check from the home page while signed in — results will appear here
+                automatically.
+              </p>
+              <Link
+                to="/"
+                className={cn(
+                  "inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-xl text-sm font-medium text-white",
+                  "bg-gradient-to-r from-[hsl(var(--neon-purple))] to-[hsl(var(--neon-cyan))]",
+                  "hover:opacity-95 transition-opacity"
+                )}
+              >
+                <Sparkles className="size-4" /> Start scanning
+              </Link>
+            </div>
+          )}
+
+          {!isLoading && !isError && recentScans.length > 0 && (
+            <div className="space-y-3">
+              {recentScans.map((scan) => (
+                <ScanHistoryItem key={scan.id} scan={scan} />
+              ))}
+              {totalScans > HISTORY_LIMIT && (
+                <p className="text-xs text-muted-foreground text-center sm:text-left pt-1">
+                  Showing latest {HISTORY_LIMIT} of {totalScans} scans
+                </p>
+              )}
+            </div>
+          )}
         </motion.section>
 
         <motion.section
