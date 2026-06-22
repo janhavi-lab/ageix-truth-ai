@@ -63,7 +63,7 @@ const Index = () => {
 
   return (
     <>
-      <section className="container pt-14 pb-8 sm:pt-24 relative">
+      <section id="detector" className="container pt-14 pb-8 sm:pt-24 scroll-mt-24 relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -84,7 +84,7 @@ const Index = () => {
         </motion.div>
       </section>
 
-      <section className="container pb-16">
+      <section id="detector-input" className="container pb-16 scroll-mt-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
