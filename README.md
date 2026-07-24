@@ -1,75 +1,119 @@
-AGEIX – AI-Powered Scam & Fake Content Detector 🚨🤖
+# 🚨 AGEIX – AI-Powered Scam & Fake Content Detector
 
-AGEIX is an AI-powered web application designed to help users identify suspicious messages, scam texts, phishing attempts, and misleading content in real time.
-The goal of this project is to make digital communication safer and help users avoid online frauds using AI and modern web technologies.
+AGEIX is an AI-powered web application that helps users identify suspicious messages, scam texts, phishing attempts, fake content, and other online frauds in real time. It combines Machine Learning, AI services, and a modern full-stack architecture to provide instant analysis with confidence scores and actionable safety recommendations.
 
-🌟 Features
-🔍 Detects scam and spam messages using AI
-🧠 AI-powered prediction with confidence score
-⚠️ Shows reasoning behind predictions
-💡 Gives safety suggestions to users
-☁️ Fully deployed cloud-based architecture
-📦 Stores scan history in Supabase database
-🌐 Live full-stack deployment
+---
 
-🛠️ Tech Stack
-Frontend
-React.js
-TypeScript
-Vite
-Tailwind CSS
-Backend
-Node.js
-Express.js
-TypeScript
-AI Service
-Python
-Flask
-Machine Learning Model
-Database
-Supabase
-Deployment
-Vercel (Frontend)
-Render (Backend + AI Service)
+## ✨ Features
 
-🧩 System Architecture
+- 🔍 Detects scam and spam messages using AI
+- 🧠 AI-powered prediction with confidence score
+- ⚠️ Explains the reasoning behind every prediction
+- 💡 Provides personalized safety recommendations
+- 📦 Stores user scan history using Supabase
+- 🔐 Secure authentication with Email & Google Sign-In
+- 💳 Premium subscription support with Razorpay
+- ☁️ Cloud-based deployment for frontend, backend, and AI services
 
-Frontend (Vercel)
-        ↓
-Backend API (Render)
-        ↓
-AI Spam Detection Service (Flask)
-        ↓
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- React.js
+- TypeScript
+- Vite
+- Tailwind CSS
+
+### Backend
+- Node.js
+- Express.js
+- TypeScript
+
+### AI Service
+- Python
+- Flask
+- Machine Learning
+
+### Database & Authentication
+- Supabase
+
+### Payment Gateway
+- Razorpay
+
+### Deployment
+- Vercel (Frontend)
+- Render (Backend)
+- Render (AI Service)
+
+---
+
+## 🏗️ System Architecture
+
+```text
+Frontend (React + Vercel)
+            │
+            ▼
+Backend API (Node.js + Express)
+            │
+            ▼
+AI Detection Service (Python + Flask)
+            │
+            ▼
 Supabase Database
+```
 
+---
 
-🚀 Live Project Links
-🌐 Frontend
+## ⚙️ How It Works
+
+1. User submits a suspicious message, URL, or content.
+2. Frontend sends the request to the backend API.
+3. Backend forwards the request to the AI detection service.
+4. The AI model analyzes the content.
+5. A verdict, confidence score, explanation, and safety suggestions are generated.
+6. Scan history is securely stored in Supabase.
+
+---
+
+## 🌐 Live Demo
+
+### Frontend
 https://ageix-truth-ai.vercel.app
 
-⚙️ Backend API
+### Backend API
 https://ageix-backend.onrender.com
 
-🤖 AI Service
+### AI Service
 https://ageix-spam-detector.onrender.com
 
-📌 How It Works
-User enters a message or suspicious content.
-Frontend sends request to backend API.
-Backend communicates with AI spam detection service.
-AI model analyzes the content.
-Result, confidence score, and suggestions are returned.
-Scan history gets stored in Supabase database.
+---
 
+## 💡 Inspiration
 
-💭 Inspiration Behind AGEIX
-With increasing online scams, phishing attacks, and fake messages, many users struggle to identify harmful content.
-AGEIX was built to create a simple and intelligent platform that can assist users in detecting suspicious content instantly using AI.
-The project focuses on:
-Cyber safety
-AI accessibility
-User awareness
-Real-world problem solving
+With the rapid increase in phishing attacks, fake messages, and digital fraud, many users struggle to distinguish genuine content from scams.
 
-❤️ Final Note
-AGEIX is more than just a college project — it is an attempt to build a practical AI-based solution that can help people stay safe in the digital world.
+AGEIX was created to build a practical AI-powered platform that helps users detect suspicious content instantly while promoting:
+
+- Cyber Safety
+- AI Accessibility
+- User Awareness
+- Real-world Problem Solving
+
+---
+
+## 🚀 Future Enhancements
+
+- Image Scam Detection
+- Voice Scam Detection
+- Fake News Detection
+- Personal AI Safety Dashboard
+- Analytics for Scam Trends
+- Browser Extension
+- Mobile Application
+
+---
+
+## ❤️ Final Note
+
+AGEIX is more than just a college project—it's an AI-driven cybersecurity solution built to help people stay safe in the digital world. By combining artificial intelligence with modern web technologies, the platform aims to make scam detection faster, smarter, and more accessible for everyone.
